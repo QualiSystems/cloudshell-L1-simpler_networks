@@ -30,6 +30,9 @@ class DriverCommands(DriverCommandsInterface):
             return self.__snmp_handler_factory
         raise LayerOneDriverException(self.__class__.__name__,
                                       'SNMP factory called before initialization')
+    @_snmp_handler_factory.setter
+    def _snmp_handler_factory(self, value):
+        self.__snmp_handler_factory = value
 
     def login(self, address, username, password):
         """
@@ -49,7 +52,7 @@ class DriverCommands(DriverCommandsInterface):
                 device_info = session.send_command('show version')
                 self._logger.info(device_info)
         """
-        self.__snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
+        self._snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
         sys_descr = self._snmp_handler_factory.read_handler().get(('SNMPv2-MIB', 'sysDescr', 0)).get('sysDescr')
         self._logger.info(sys_descr)
 
