@@ -27,7 +27,7 @@ class DriverCommands(DriverCommandsInterface):
         :rtype: simpler_networks.snmp.snmp_handler_factory.SnmpHandlerFactory
         """
         if self.__snmp_handler_factory:
-            return self._snmp_handler_factory
+            return self.__snmp_handler_factory
         raise LayerOneDriverException(self.__class__.__name__,
                                       'SNMP factory called before initialization')
 
@@ -50,7 +50,8 @@ class DriverCommands(DriverCommandsInterface):
                 self._logger.info(device_info)
         """
         self.__snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
-        self._logger.info(self._snmp_handler_factory.read_handler().get(('SNMPv2-MIB', 'sysDescr', 0)))
+        sys_descr = self._snmp_handler_factory.read_handler().get(('SNMPv2-MIB', 'sysDescr', 0)).get('sysDescr')
+        self._logger.info(sys_descr)
 
     def get_state_id(self):
         """
