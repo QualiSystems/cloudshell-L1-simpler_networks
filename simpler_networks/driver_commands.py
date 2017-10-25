@@ -3,10 +3,12 @@
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
+from cloudshell.layer_one.core.response.response_info import GetStateIdResponseInfo
 from simpler_networks.snmp.snmp_handler_factory import SnmpHandlerFactory
 
 
 class DriverCommands(DriverCommandsInterface):
+    SIMPLER_NETWORKS_MIB = 'SIMPLER-NETWORKS-MIB'
     """
     Driver commands implementation
     """
@@ -30,6 +32,7 @@ class DriverCommands(DriverCommandsInterface):
             return self.__snmp_handler_factory
         raise LayerOneDriverException(self.__class__.__name__,
                                       'SNMP factory called before initialization')
+
     @_snmp_handler_factory.setter
     def _snmp_handler_factory(self, value):
         self.__snmp_handler_factory = value
@@ -54,7 +57,7 @@ class DriverCommands(DriverCommandsInterface):
         """
         self._snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
         sys_descr = self._snmp_handler_factory.read_handler().get(('SNMPv2-MIB', 'sysDescr', 0)).get('sysDescr')
-        self._logger.info(sys_descr)
+        self._logger.info('Connected to ' + sys_descr)
 
     def get_state_id(self):
         """
@@ -70,7 +73,7 @@ class DriverCommands(DriverCommandsInterface):
                 chassis_name = session.send_command('show chassis name')
                 return chassis_name
         """
-        raise NotImplementedError
+        return GetStateIdResponseInfo(-1)
 
     def set_state_id(self, state_id):
         """
@@ -86,7 +89,7 @@ class DriverCommands(DriverCommandsInterface):
                 # Execute command
                 session.send_command('set chassis name {}'.format(state_id))
         """
-        raise NotImplementedError
+        pass
 
     def map_bidi(self, src_port, dst_port):
         """
@@ -155,7 +158,8 @@ class DriverCommands(DriverCommandsInterface):
 
             return ResourceDescriptionResponseInfo([chassis])
         """
-        raise NotImplementedError
+        snmp_handler = self._snmp_handler_factory.read_handler()
+        port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
 
     def map_clear(self, ports):
         """
