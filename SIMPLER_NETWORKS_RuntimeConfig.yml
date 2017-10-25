@@ -1,7 +1,5 @@
-#CLI:
-#  TYPE: [SSH,TELNET]
-#  PORTS:
-#    SSH: 22
-#    TELNET: 23
 LOGGING:
-  LEVEL: INFO
+  LEVEL: DEBUG
+SNMP:
+  READ_COMMUNITY: public
+  WRITE_COMMUNITY: AdminPublic

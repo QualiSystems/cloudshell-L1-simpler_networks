@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
+from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
+from simpler_networks.snmp.snmp_handler_factory import SnmpHandlerFactory
 
 
 class DriverCommands(DriverCommandsInterface):
@@ -15,6 +17,19 @@ class DriverCommands(DriverCommandsInterface):
         :type logger: logging.Logger
         """
         self._logger = logger
+        self.__snmp_handler_factory = None
+
+    @property
+    def _snmp_handler_factory(self):
+        """
+        SNMP handler factory
+        :return:
+        :rtype: simpler_networks.snmp.snmp_handler_factory.SnmpHandlerFactory
+        """
+        if self.__snmp_handler_factory:
+            return self._snmp_handler_factory
+        raise LayerOneDriverException(self.__class__.__name__,
+                                      'SNMP factory called before initialization')
 
     def login(self, address, username, password):
         """
@@ -34,7 +49,8 @@ class DriverCommands(DriverCommandsInterface):
                 device_info = session.send_command('show version')
                 self._logger.info(device_info)
         """
-        raise NotImplementedError
+        self.__snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
+        self._logger.info(self._snmp_handler_factory.read_handler().get(('SNMPv2-MIB', 'sysDescr', 0)))
 
     def get_state_id(self):
         """
