@@ -56,8 +56,10 @@ class DriverCommands(DriverCommandsInterface):
                 self._logger.info(device_info)
         """
         self._snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
-        sys_descr = self._snmp_handler_factory.read_handler().get(('SNMPv2-MIB', 'sysDescr', 0)).get('sysDescr')
-        self._logger.info('Connected to ' + sys_descr)
+        snmp_handler= self._snmp_handler_factory.read_handler()
+        sys_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0'))
+        ss_id=snmp_handler.get(('SNMPv2-MIB', 'sysObjectID', '0'))
+        # self._logger.info('Connected to ' + sys_descr)
 
     def get_state_id(self):
         """
@@ -160,6 +162,7 @@ class DriverCommands(DriverCommandsInterface):
         """
         snmp_handler = self._snmp_handler_factory.read_handler()
         port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
+        print port_table
 
     def map_clear(self, ports):
         """

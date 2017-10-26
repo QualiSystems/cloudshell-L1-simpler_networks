@@ -16,14 +16,16 @@ class SnmpHandlerFactory(object):
 
     def _init_snmp_handler(self, snmp_parameters):
         snmp_handler = QualiSnmp(snmp_parameters, self._logger)
-        path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mibs'))
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'mibs'))
         snmp_handler.update_mib_sources(path)
         snmp_handler.load_mib(self.SIMPLER_NETWORKS_MIB)
         return snmp_handler
 
     def _init_read_handler(self):
         read_parameters = SNMPV2ReadParameters(self._host, RuntimeConfiguration().read_key('SNMP.READ_COMMUNITY'))
-        return self._init_snmp_handler(read_parameters)
+        snmp_handler = self._init_snmp_handler(read_parameters)
+        snmp_handler._test_snmp_agent()
+        return snmp_handler
 
     def _init_write_handler(self):
         write_parameters = SNMPV2WriteParameters(self._host, RuntimeConfiguration().read_key('SNMP.WRITE_COMMUNITY'))
