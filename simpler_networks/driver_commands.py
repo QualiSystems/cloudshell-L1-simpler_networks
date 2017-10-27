@@ -56,9 +56,9 @@ class DriverCommands(DriverCommandsInterface):
                 self._logger.info(device_info)
         """
         self._snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
-        snmp_handler= self._snmp_handler_factory.read_handler()
+        snmp_handler = self._snmp_handler_factory.snmp_handler()
         sys_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0'))
-        ss_id=snmp_handler.get(('SNMPv2-MIB', 'sysObjectID', '0'))
+        ss_id = snmp_handler.get(('SNMPv2-MIB', 'sysObjectID', '0'))
         # self._logger.info('Connected to ' + sys_descr)
 
     def get_state_id(self):
