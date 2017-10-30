@@ -1,7 +1,10 @@
+import os
+
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.error import PySnmpError
-from pysnmp.smi import view
 from pysnmp.smi.rfc1902 import ObjectIdentity, ObjectType
+from pysnmp.smi import builder, view
+
 
 from cloudshell.snmp.quali_snmp import QualiSnmp
 
@@ -26,9 +29,8 @@ class ReadWriteSnmpHandler(QualiSnmp):
         if ':' in ip:
             ip = ip.split(':')[0]
         self.target = cmdgen.UdpTransportTarget((ip, snmp_parameters.port))
-        self.security = cmdgen.CommunityData(snmp_parameters.snmp_write_community)
+        self.security = cmdgen.CommunityData(snmp_parameters.snmp_read_community)
         self.write_security = cmdgen.CommunityData(snmp_parameters.snmp_write_community)
-        self._test_snmp_agent()
 
     def _write_command(self, cmd, *oids):
         """ Execute provided command with provided oids

@@ -108,7 +108,12 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command('map bidir {0} {1}'.format(convert_port(src_port), convert_port(dst_port)))
 
         """
-        raise NotImplementedError
+        snmp_handler = self._snmp_handler_factory.snmp_handler()
+        snmp_handler.set([((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', '1','6','1','106','2'), '4')])
+        # con_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
+        # print con_table
+
+        # snmp_handler.set([(('1.3.6.1.4.1.4987.1.1.1.16.1.4.1.104.2'), '4')])
 
     def map_uni(self, src_port, dst_ports):
         """
@@ -160,8 +165,9 @@ class DriverCommands(DriverCommandsInterface):
 
             return ResourceDescriptionResponseInfo([chassis])
         """
-        snmp_handler = self._snmp_handler_factory.read_handler()
-        port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
+        snmp_handler = self._snmp_handler_factory.snmp_handler()
+        # card_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
+        port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
         print port_table
 
     def map_clear(self, ports):
