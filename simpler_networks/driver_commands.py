@@ -3,7 +3,8 @@
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
-from cloudshell.layer_one.core.response.response_info import GetStateIdResponseInfo
+from cloudshell.layer_one.core.response.response_info import GetStateIdResponseInfo, ResourceDescriptionResponseInfo
+from simpler_networks.helpers.autoload_helper import AutoloadHelper
 from simpler_networks.snmp.snmp_handler_factory import SnmpHandlerFactory
 
 
@@ -58,8 +59,7 @@ class DriverCommands(DriverCommandsInterface):
         self._snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
         snmp_handler = self._snmp_handler_factory.snmp_handler()
         sys_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0'))
-        ss_id = snmp_handler.get(('SNMPv2-MIB', 'sysObjectID', '0'))
-        # self._logger.info('Connected to ' + sys_descr)
+        self._logger.info('Connected to ' + sys_descr)
 
     def get_state_id(self):
         """
@@ -93,6 +93,35 @@ class DriverCommands(DriverCommandsInterface):
         """
         pass
 
+    @staticmethod
+    def _src_port_index(index):
+        return 0 < int(index) <= 50
+
+    @staticmethod
+    def _dst_port_index(index):
+        return 100 < int(index) <= 116
+
+    def _fix_port_order(self, *port_pair):
+        if not len(port_pair) == 2:
+            raise Exception(self.__class__.__name__, 'Only port pair can be handled')
+
+        src_port = None
+        dst_port = None
+        for port in port_pair:
+            if self._src_port_index(port[1]):
+                src_port = port
+            if self._dst_port_index(port[1]):
+                dst_port = port
+
+        if not src_port or not dst_port:
+            raise Exception(self.__class__.__name__,
+                            'Cannot map ports: {0}, {1}'.format('.'.join(port_pair[0]), '.'.join(port_pair[1])))
+        return src_port, dst_port
+
+    @staticmethod
+    def _convert_port(cs_port):
+        return tuple(cs_port.split('/')[1:])
+
     def map_bidi(self, src_port, dst_port):
         """
         Create a bidirectional connection between source and destination ports
@@ -108,12 +137,14 @@ class DriverCommands(DriverCommandsInterface):
                 session.send_command('map bidir {0} {1}'.format(convert_port(src_port), convert_port(dst_port)))
 
         """
-        snmp_handler = self._snmp_handler_factory.snmp_handler()
-        snmp_handler.set([((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', '1','6','1','106','2'), '4')])
-        # con_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
-        # print con_table
 
-        # snmp_handler.set([(('1.3.6.1.4.1.4987.1.1.1.16.1.4.1.104.2'), '4')])
+        self._logger.debug('Connecting ports {0}, {1}'.format(src_port, dst_port))
+        src_tuple, dst_tuple = self._fix_port_order(self._convert_port(src_port), self._convert_port(dst_port))
+        self._logger.debug('Connection order {0}, {1}'.format(src_tuple, dst_tuple))
+
+        snmp_handler = self._snmp_handler_factory.snmp_handler()
+        snmp_handler.set([((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
+                            dst_tuple[1], '2'), '4')])
 
     def map_uni(self, src_port, dst_ports):
         """
@@ -166,9 +197,16 @@ class DriverCommands(DriverCommandsInterface):
             return ResourceDescriptionResponseInfo([chassis])
         """
         snmp_handler = self._snmp_handler_factory.snmp_handler()
-        # card_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
-        port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
-        print port_table
+
+        connection_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
+        port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, ' sniEntityPortTable'))
+        card_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
+
+        resource_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0')).get('sysDescr')
+        response_info = ResourceDescriptionResponseInfo(
+            AutoloadHelper(address, resource_descr, card_table, port_table, connection_table,
+                           self._logger).build_structure())
+        return response_info
 
     def map_clear(self, ports):
         """
