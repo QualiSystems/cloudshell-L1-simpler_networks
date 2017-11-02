@@ -165,6 +165,9 @@ class DriverCommands(DriverCommandsInterface):
         self.snmp_handler.set(
             [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
                dst_tuple[1], '2'), '4')])
+        # status = self.snmp_handler.get((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1],
+        #                                   dst_tuple[0], dst_tuple[1], '2')).get('sniConnRowStatus')
+        # self._logger.debug("Connection status: " + status)
 
     def map_uni(self, src_port, dst_ports):
         """
@@ -235,7 +238,7 @@ class DriverCommands(DriverCommandsInterface):
         return response_info
 
     @staticmethod
-    def convert_connection_table(conn_table):
+    def _convert_connection_table(conn_table):
         connection_dict = {}
         for conn_data in conn_table.values():
             from_card = conn_data.get('sniConnFromEndPointCard')
@@ -258,20 +261,13 @@ class DriverCommands(DriverCommandsInterface):
             for port in ports:
                 session.send_command('map clear {}'.format(convert_port(port)))
         """
-        connection_table = self.convert_connection_table(self.connection_table)
-        connection_table_by_value = {v: k for k, v in connection_table.iteritems()}
+        connection_table = self._convert_connection_table(self.connection_table)
 
         for cs_port in ports:
             port = self._convert_port(cs_port)
-            src_port = None
-            dst_port = None
             if port in connection_table:
                 src_port = port
                 dst_port = connection_table.get(port)
-            elif port in connection_table_by_value:
-                src_port = connection_table_by_value.get(port)
-                dst_port = port
-            if src_port and dst_port:
                 self._unmap_ports(src_port, dst_port)
 
     def _unmap_ports(self, src_port, dst_port):
