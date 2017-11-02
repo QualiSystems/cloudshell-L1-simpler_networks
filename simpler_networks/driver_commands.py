@@ -219,10 +219,10 @@ class DriverCommands(DriverCommandsInterface):
 
             return ResourceDescriptionResponseInfo([chassis])
         """
-        from cards import CARDS
-        from ports import PORTS
         # snmp_handler = self._snmp_handler_factory.snmp_handler()
 
+        from test_data.cards import CARDS
+        from test_data.ports import PORTS
         # connection_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
         connection_table = self.connection_table
         # port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
