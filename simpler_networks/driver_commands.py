@@ -181,7 +181,7 @@ class DriverCommands(DriverCommandsInterface):
                 for dst_port in dst_ports:
                     session.send_command('map {0} also-to {1}'.format(convert_port(src_port), convert_port(dst_port)))
         """
-        raise NotImplementedError
+        raise Exception(self.__class__.__name__, 'Unidirectional connections are not allowed')
 
     def get_resource_description(self, address):
         """
