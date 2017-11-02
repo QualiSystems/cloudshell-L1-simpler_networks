@@ -3,7 +3,8 @@
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
-from cloudshell.layer_one.core.response.response_info import GetStateIdResponseInfo, ResourceDescriptionResponseInfo
+from cloudshell.layer_one.core.response.resource_info.entities.attributes import StringAttribute
+from cloudshell.layer_one.core.response.response_info import ResourceDescriptionResponseInfo, GetStateIdResponseInfo
 from simpler_networks.helpers.autoload_helper import AutoloadHelper
 from simpler_networks.snmp.snmp_handler_factory import SnmpHandlerFactory
 
@@ -38,6 +39,27 @@ class DriverCommands(DriverCommandsInterface):
     def _snmp_handler_factory(self, value):
         self.__snmp_handler_factory = value
 
+    @property
+    def snmp_handler(self):
+        return self._snmp_handler_factory.snmp_handler()
+
+    @property
+    def card_table(self):
+        return self.snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
+
+    @property
+    def port_table(self):
+        return self.snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
+
+    @property
+    def connection_table(self):
+        return self.snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
+
+    @property
+    def chassis_sn(self):
+        return self.snmp_handler.get((self.SIMPLER_NETWORKS_MIB, 'sniEntitySysImageVersion')).get(
+            'sniEntitySysImageVersion')
+
     def login(self, address, username, password):
         """
         Perform login operation on the device
@@ -57,8 +79,7 @@ class DriverCommands(DriverCommandsInterface):
                 self._logger.info(device_info)
         """
         self._snmp_handler_factory = SnmpHandlerFactory(address, self._logger)
-        snmp_handler = self._snmp_handler_factory.snmp_handler()
-        sys_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0'))
+        sys_descr = self.snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0')).get('sysDescr')
         self._logger.info('Connected to ' + sys_descr)
 
     def get_state_id(self):
@@ -75,7 +96,7 @@ class DriverCommands(DriverCommandsInterface):
                 chassis_name = session.send_command('show chassis name')
                 return chassis_name
         """
-        return GetStateIdResponseInfo(-1)
+        return GetStateIdResponseInfo(self.snmp_handler.get(('SNMPv2-MIB', 'sysName')).get('sysName'))
 
     def set_state_id(self, state_id):
         """
@@ -91,7 +112,7 @@ class DriverCommands(DriverCommandsInterface):
                 # Execute command
                 session.send_command('set chassis name {}'.format(state_id))
         """
-        pass
+        self.snmp_handler.set([(('SNMPv2-MIB', 'sysName', '0'), str(state_id))])
 
     @staticmethod
     def _src_port_index(index):
@@ -141,10 +162,9 @@ class DriverCommands(DriverCommandsInterface):
         self._logger.debug('Connecting ports {0}, {1}'.format(src_port, dst_port))
         src_tuple, dst_tuple = self._fix_port_order(self._convert_port(src_port), self._convert_port(dst_port))
         self._logger.debug('Connection order {0}, {1}'.format(src_tuple, dst_tuple))
-
-        snmp_handler = self._snmp_handler_factory.snmp_handler()
-        snmp_handler.set([((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
-                            dst_tuple[1], '2'), '4')])
+        self.snmp_handler.set(
+            [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
+               dst_tuple[1], '2'), '4')])
 
     def map_uni(self, src_port, dst_ports):
         """
@@ -196,15 +216,21 @@ class DriverCommands(DriverCommandsInterface):
 
             return ResourceDescriptionResponseInfo([chassis])
         """
-        snmp_handler = self._snmp_handler_factory.snmp_handler()
+        from cards import CARDS
+        from ports import PORTS
+        # snmp_handler = self._snmp_handler_factory.snmp_handler()
 
-        connection_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
-        port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, ' sniEntityPortTable'))
-        card_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
+        # connection_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
+        connection_table = self.connection_table
+        # port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
+        port_table = PORTS
+        # card_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
+        card_table = CARDS
 
-        resource_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0')).get('sysDescr')
+        # resource_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0')).get('sysDescr')
+        resource_descr = 'SN'
         response_info = ResourceDescriptionResponseInfo(
-            AutoloadHelper(address, resource_descr, card_table, port_table, connection_table,
+            AutoloadHelper(address, resource_descr, self.chassis_sn, card_table, port_table, connection_table,
                            self._logger).build_structure())
         return response_info
 
@@ -240,7 +266,13 @@ class DriverCommands(DriverCommandsInterface):
                     _dst_port = convert_port(port)
                     session.send_command('map clear-to {0} {1}'.format(_src_port, _dst_port))
         """
-        raise NotImplementedError
+
+        self._logger.debug('Clear connection {0}, {1}'.format(src_port, dst_ports))
+        src_tuple, dst_tuple = self._fix_port_order(self._convert_port(src_port), self._convert_port(dst_ports[0]))
+        self._logger.debug('Clear order {0}, {1}'.format(src_tuple, dst_tuple))
+        self.snmp_handler.set(
+            [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
+               dst_tuple[1], '2'), '6')])
 
     def get_attribute_value(self, cs_address, attribute_name):
         """
@@ -259,7 +291,12 @@ class DriverCommands(DriverCommandsInterface):
                 value = session.send_command(command)
                 return AttributeValueResponseInfo(value)
         """
-        raise NotImplementedError
+        serial_number = 'Serial Number'
+        if len(cs_address.split('/')) == 1 and attribute_name == serial_number:
+            return StringAttribute(serial_number, self.chassis_sn or StringAttribute.DEFAULT_VALUE)
+        else:
+            raise Exception(self.__class__.__name__,
+                            'Attribute {0} for {1} not available'.format(attribute_name, cs_address))
 
     def set_attribute_value(self, cs_address, attribute_name, attribute_value):
         """

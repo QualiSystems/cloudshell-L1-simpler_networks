@@ -4,17 +4,19 @@ from cloudshell.layer_one.core.response.resource_info.entities.port import Port
 
 
 class AutoloadHelper(object):
-    def __init__(self, address, resource_descr, card_table, port_table, connection_table, logger):
+    def __init__(self, address, resource_descr, chassis_sn, card_table, port_table, connection_table, logger):
         self._address = address
         self._card_table = card_table
         self._port_table = port_table
         self._connection_table = connection_table
         self._logger = logger
         self._resource_descr = resource_descr
+        self._chassis_sn = chassis_sn
 
     def _build_chassis(self):
-        chassis = Chassis('1', self._address, 'Simpler Networks Chassis', None)
+        chassis = Chassis('1', self._address, 'Simpler Networks Chassis', self._chassis_sn)
         chassis.set_model_name(self._resource_descr)
+        chassis.set_serial_number(self._chassis_sn)
         return chassis
 
     def _build_cards(self, chassis):
@@ -42,7 +44,9 @@ class AutoloadHelper(object):
                 card = cards.get(card_index)
                 port_index = port_data.get('sniEntityPortIndex')
                 # port_model = port_data.get('sniEntityPortAid')
-                port = Port(port_index, 'L1 Switch Port', None)
+                port = Port(port_index, 'Generic L1 Port', '')
+                port_model = port_data.get('sniEntityPortAid')
+                port.set_model_name(port_model)
                 port.set_parent_resource(card)
                 ports['{0}.{1}'.format(card_index, port_index)] = port
         return ports

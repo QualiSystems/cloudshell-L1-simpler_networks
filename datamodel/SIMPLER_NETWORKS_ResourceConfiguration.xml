@@ -144,7 +144,10 @@
                     <AllowedValues/>
                 </AttachedAttribute>
             </AttachedAttributes>
-            <AttributeValues/>
+            <AttributeValues>
+                <AttributeValue Name="User" Value="admin"/>
+                <AttributeValue Name="Password" Value="admin"/>
+            </AttributeValues>
             <Models>
                 <ResourceModel Name="Simpler Networks Chassis" Description="" SupportsConcurrentCommands="false">
                     <AttachedAttributes>
