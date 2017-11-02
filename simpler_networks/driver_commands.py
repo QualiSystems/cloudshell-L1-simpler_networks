@@ -234,6 +234,17 @@ class DriverCommands(DriverCommandsInterface):
                            self._logger).build_structure())
         return response_info
 
+    @staticmethod
+    def convert_connection_table(conn_table):
+        connection_dict = {}
+        for conn_data in conn_table.values():
+            from_card = conn_data.get('sniConnFromEndPointCard')
+            from_port = conn_data.get('sniConnFromEndPointPort')
+            to_card = conn_data.get('sniConnToEndPointCard')
+            to_port = conn_data.get('sniConnToEndPointPort')
+            connection_dict[(from_card, from_port)] = (to_card, to_port)
+        return connection_dict
+
     def map_clear(self, ports):
         """
         Remove simplex/multi-cast/duplex connection ending on the destination port
@@ -247,7 +258,28 @@ class DriverCommands(DriverCommandsInterface):
             for port in ports:
                 session.send_command('map clear {}'.format(convert_port(port)))
         """
-        raise NotImplementedError
+        connection_table = self.convert_connection_table(self.connection_table)
+        connection_table_by_value = {v: k for k, v in connection_table.iteritems()}
+
+        for cs_port in ports:
+            port = self._convert_port(cs_port)
+            src_port = None
+            dst_port = None
+            if port in connection_table:
+                src_port = port
+                dst_port = connection_table.get(port)
+            elif port in connection_table_by_value:
+                src_port = connection_table_by_value.get(port)
+                dst_port = port
+            if src_port and dst_port:
+                self._unmap_ports(src_port, dst_port)
+
+    def _unmap_ports(self, src_port, dst_port):
+        src_port, dst_port = self._fix_port_order(src_port, dst_port)
+        self._logger.debug('Clear order {0}, {1}'.format(src_port, dst_port))
+        self.snmp_handler.set(
+            [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_port[0], src_port[1], dst_port[0],
+               dst_port[1], '2'), '6')])
 
     def map_clear_to(self, src_port, dst_ports):
         """
@@ -268,11 +300,7 @@ class DriverCommands(DriverCommandsInterface):
         """
 
         self._logger.debug('Clear connection {0}, {1}'.format(src_port, dst_ports))
-        src_tuple, dst_tuple = self._fix_port_order(self._convert_port(src_port), self._convert_port(dst_ports[0]))
-        self._logger.debug('Clear order {0}, {1}'.format(src_tuple, dst_tuple))
-        self.snmp_handler.set(
-            [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
-               dst_tuple[1], '2'), '6')])
+        self._unmap_ports(self._convert_port(src_port), self._convert_port(dst_ports[0]))
 
     def get_attribute_value(self, cs_address, attribute_name):
         """
