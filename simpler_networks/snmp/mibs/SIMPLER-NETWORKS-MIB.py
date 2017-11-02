@@ -21,7 +21,7 @@ if mibBuilder.loadTexts: sni.setDescription("The management information definiti
 ezedge = MibIdentifier((1, 3, 6, 1, 4, 1, 4987, 1))
 sniConnTable = MibTable((1, 3, 6, 1, 4, 1, 4987, 1, 1))
 if mibBuilder.loadTexts: sniConnTable.setDescription("Simpler Networks Inc table to view / create cross connections.")
-sniConnEntry = MibTableRow((1, 3, 6, 1, 4, 1, 4987, 1, 1, 1)).setIndexNames((0, "SIMPLER-NETWORKS-MIB", "sniConnFromEndPointCard"), (0, "SIMPLER-NETWORKS-MIB", "sniConnFromEndPointPort"), (0, "SIMPLER-NETWORKS-MIB", "sniConnToEndPointCard"), (0, "SIMPLER-NETWORKS-MIB", "sniConnToEndPointPort"), (0, "SIMPLER-NETWORKS-MIB", "sniConnToServiceId"))
+sniConnEntry = MibTableRow((1, 3, 6, 1, 4, 1, 4987, 1, 1, 1)).setIndexNames((0, "SIMPLER-NETWORKS-MIB", "sniConnFromEndPointCard"), (0, "SIMPLER-NETWORKS-MIB", "sniConnFromEndPointPort"), (0, "SIMPLER-NETWORKS-MIB", "sniConnToEndPointCard"), (0, "SIMPLER-NETWORKS-MIB", "sniConnToEndPointPort"), (0, "SIMPLER-NETWORKS-MIB", "sniConnToServiceId"), (0, "SIMPLER-NETWORKS-MIB", "sniConnAvailabilityStatus"), (0, "SIMPLER-NETWORKS-MIB", "sniConnAvailabilityStatus"), (0, "SIMPLER-NETWORKS-MIB", "sniConnAvailabilityStatus"), (0, "SIMPLER-NETWORKS-MIB", "sniConnAvailabilityStatus"))
 if mibBuilder.loadTexts: sniConnEntry.setDescription("Simpler Networks Inc table entry to view / create cross connections.")
 sniConnFromEndPointCard = MibTableColumn((1, 3, 6, 1, 4, 1, 4987, 1, 1, 1, 1), Integer32().subtype(subtypeSpec=ValueRangeConstraint(1, 12))).setMaxAccess("readonly")
 if mibBuilder.loadTexts: sniConnFromEndPointCard.setDescription("The from end point access card index of this connection.")

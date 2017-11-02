@@ -164,7 +164,7 @@ class DriverCommands(DriverCommandsInterface):
         self._logger.debug('Connection order {0}, {1}'.format(src_tuple, dst_tuple))
         self.snmp_handler.set(
             [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
-               dst_tuple[1], '2'), '4')])
+               dst_tuple[1], '2', '0', '0', '0', '0'), '4')])
         # status = self.snmp_handler.get((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1],
         #                                   dst_tuple[0], dst_tuple[1], '2')).get('sniConnRowStatus')
         # self._logger.debug("Connection status: " + status)
@@ -275,7 +275,7 @@ class DriverCommands(DriverCommandsInterface):
         self._logger.debug('Clear order {0}, {1}'.format(src_port, dst_port))
         self.snmp_handler.set(
             [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_port[0], src_port[1], dst_port[0],
-               dst_port[1], '2'), '6')])
+               dst_port[1], '2', '0', '0', '0', '0'), '6')])
 
     def map_clear_to(self, src_port, dst_ports):
         """
