@@ -276,6 +276,9 @@ class DriverCommands(DriverCommandsInterface):
         self.snmp_handler.set(
             [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_port[0], src_port[1], dst_port[0],
                dst_port[1], '2', '0', '0', '0', '0'), '6')])
+        status = self.snmp_handler.get(
+            (self.SIMPLER_NETWORKS_MIB, 'sniEntityPortAvailabilityStatus', src_port[0], src_port[1]))
+        self._logger.debug('Port status {0}, {1}'.format(src_port, status))
 
     def map_clear_to(self, src_port, dst_ports):
         """
