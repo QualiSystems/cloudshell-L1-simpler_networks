@@ -1,19 +1,26 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import time
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
 from cloudshell.layer_one.core.response.resource_info.entities.attributes import StringAttribute
 from cloudshell.layer_one.core.response.response_info import ResourceDescriptionResponseInfo, GetStateIdResponseInfo
+
 from simpler_networks.helpers.autoload_helper import AutoloadHelper
 from simpler_networks.snmp.snmp_handler_factory import SnmpHandlerFactory
 
 
 class DriverCommands(DriverCommandsInterface):
-    SIMPLER_NETWORKS_MIB = 'SIMPLER-NETWORKS-MIB'
     """
     Driver commands implementation
     """
+
+    SIMPLER_NETWORKS_MIB = 'SIMPLER-NETWORKS-MIB'
+
+    PORT_STATUS_TIMEOUT = 6
+    PORT_BUSY = 'busy'
+    PORT_IDLE = 'idle'
 
     def __init__(self, logger):
         """
@@ -123,6 +130,11 @@ class DriverCommands(DriverCommandsInterface):
         return 100 < int(index) <= 116
 
     def _fix_port_order(self, *port_pair):
+        """
+        Fix port order and check ports
+        :param port_pair:
+        :return:
+        """
         if not len(port_pair) == 2:
             raise Exception(self.__class__.__name__, 'Only port pair can be handled')
 
@@ -165,9 +177,7 @@ class DriverCommands(DriverCommandsInterface):
         self.snmp_handler.set(
             [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1], dst_tuple[0],
                dst_tuple[1], '2', '0', '0', '0', '0'), '4')])
-        # status = self.snmp_handler.get((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_tuple[0], src_tuple[1],
-        #                                   dst_tuple[0], dst_tuple[1], '2')).get('sniConnRowStatus')
-        # self._logger.debug("Connection status: " + status)
+        self._wait_port_status_switched(src_tuple, self.PORT_IDLE)
 
     def map_uni(self, src_port, dst_ports):
         """
@@ -223,15 +233,14 @@ class DriverCommands(DriverCommandsInterface):
 
         from test_data.cards import CARDS
         from test_data.ports import PORTS
-        # connection_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniConnTable'))
         connection_table = self.connection_table
-        # port_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityPortTable'))
-        port_table = PORTS
-        # card_table = snmp_handler.walk((self.SIMPLER_NETWORKS_MIB, 'sniEntityCardTable'))
-        card_table = CARDS
+        port_table = self.port_table
+        # port_table = PORTS
+        card_table = self.card_table
+        # card_table = CARDS
 
-        # resource_descr = snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0')).get('sysDescr')
-        resource_descr = 'SN'
+        resource_descr = self.snmp_handler.get(('SNMPv2-MIB', 'sysDescr', '0')).get('sysDescr')
+        # resource_descr = 'SN'
         response_info = ResourceDescriptionResponseInfo(
             AutoloadHelper(address, resource_descr, self.chassis_sn, card_table, port_table, connection_table,
                            self._logger).build_structure())
@@ -270,15 +279,38 @@ class DriverCommands(DriverCommandsInterface):
                 dst_port = connection_table.get(port)
                 self._unmap_ports(src_port, dst_port)
 
+    def _wait_port_status_switched(self, port, port_status):
+        """
+        Wait till port status will be switched or rise exception when timeout
+        :param port:
+        :param port_status:
+        :return:
+        """
+        self._logger.debug('Waiting for switching status for {0}, from {1}'.format(port, port_status))
+        status = lambda: self.snmp_handler.get(
+            (self.SIMPLER_NETWORKS_MIB, 'sniEntityPortAvailabilityStatus', port[0], port[1])).get(
+            'sniEntityPortAvailabilityStatus').strip("'")
+        start_time = time.time()
+        timeout = lambda: (time.time() - start_time) > self.PORT_STATUS_TIMEOUT
+        while not timeout() and status() == port_status:
+            time.sleep(0.5)
+
+        cur_status = status()
+        if cur_status == port_status and timeout():
+            raise Exception(self.__class__.__name__,
+                            'Status of port {0} was not switched from {1} during {2} sec'.format(port, cur_status,
+                                                                                        self.PORT_STATUS_TIMEOUT))
+        else:
+            self._logger.debug('Port status switched {0}, {1}'.format(port, cur_status))
+
     def _unmap_ports(self, src_port, dst_port):
         src_port, dst_port = self._fix_port_order(src_port, dst_port)
         self._logger.debug('Clear order {0}, {1}'.format(src_port, dst_port))
         self.snmp_handler.set(
             [((self.SIMPLER_NETWORKS_MIB, 'sniConnRowStatus', src_port[0], src_port[1], dst_port[0],
                dst_port[1], '2', '0', '0', '0', '0'), '6')])
-        status = self.snmp_handler.get(
-            (self.SIMPLER_NETWORKS_MIB, 'sniEntityPortAvailabilityStatus', src_port[0], src_port[1]))
-        self._logger.debug('Port status {0}, {1}'.format(src_port, status))
+
+        self._wait_port_status_switched(src_port, self.PORT_BUSY)
 
     def map_clear_to(self, src_port, dst_ports):
         """
