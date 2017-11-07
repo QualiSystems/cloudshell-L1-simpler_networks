@@ -17,16 +17,9 @@ class SnmpHandlerFactory(object):
     def _init_snmp_handler(self, snmp_parameters):
         snmp_handler = ReadWriteSnmpHandler(snmp_parameters, self._logger)
 
-        snmp_handler.mib_builder.unloadModules(
-            'SNMPv2-MIB', 'SNMP-MPD-MIB', 'SNMP-COMMUNITY-MIB',
-            'SNMP-TARGET-MIB', 'SNMP-USER-BASED-SM-MIB', 'SNMPv2-CONF', 'SNMPv2-SMI', 'SNMPv2-TC'
-        )
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'mibs'))
         snmp_handler.update_mib_sources(path)
-        snmp_handler.mib_builder.loadModules(
-            'SNMPv2-MIB', 'SNMP-MPD-MIB', 'SNMP-COMMUNITY-MIB',
-            'SNMP-TARGET-MIB', 'SNMP-USER-BASED-SM-MIB', self.SIMPLER_NETWORKS_MIB
-        )
+        snmp_handler.load_mib(self.SIMPLER_NETWORKS_MIB)
         return snmp_handler
 
     def snmp_handler(self):
