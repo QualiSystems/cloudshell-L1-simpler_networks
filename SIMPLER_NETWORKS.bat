@@ -1,13 +1,12 @@
 @ECHO OFF
 setlocal
-set DRIVERS_FOLDER=C:\Program Files (x86)\QualiSystems\CloudShell\Server\Drivers
+set SERVER_FOLDER=C:\Program Files (x86)\QualiSystems\CloudShell\Server
+set DRIVERS_FOLDER=%SERVER_FOLDER%\Drivers
 set DRIVER_NAME=%~n0
-set LOGS_PATH=C:\Program Files (x86)\QualiSystems\CloudShell\Server\Logs\%DRIVER_NAME%
+set LOGS_PATH=%SERVER_FOLDER%\Logs\%DRIVER_NAME%
 set DRIVER_ENV=%DRIVERS_FOLDER%\%DRIVER_NAME%
-::set DRIVER_FOLDER=MRV
-::call %cd%\%DRIVER_FOLDER%\Scripts\activate.bat
-set PYTHON="%DRIVER_ENV%\Scripts\python"
-set EXE=%PYTHON% "%DRIVER_ENV%\main.py"
+set PYTHON=%DRIVER_ENV%\Scripts\python
+set EXE=%PYTHON% %DRIVER_ENV%\main.py
 set port=%1
 if not defined port set port=4000
 echo Starting driver %DRIVER_NAME%
