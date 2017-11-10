@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     # Determining log path
     driver_path = os.path.dirname(sys.argv[0])
-    log_path = os.path.join(driver_path, '../..', 'Logs')
+    log_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join(driver_path, '..', 'Logs')
     os.environ['LOG_PATH'] = log_path
 
     # Reading runtime configuration
