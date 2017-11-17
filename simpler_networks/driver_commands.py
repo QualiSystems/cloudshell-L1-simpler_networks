@@ -17,7 +17,7 @@ class DriverCommands(DriverCommandsInterface):
 
     SIMPLER_NETWORKS_MIB = 'SIMPLER-NETWORKS-MIB'
 
-    PORT_STATUS_TIMEOUT = 6
+    PORT_STATUS_TIMEOUT = 20
     PORT_BUSY = 'busy'
     PORT_IDLE = 'idle'
 
