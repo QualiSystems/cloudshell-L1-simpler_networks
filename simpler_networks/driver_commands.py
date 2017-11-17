@@ -4,9 +4,8 @@ import time
 
 from cloudshell.layer_one.core.driver_commands_interface import DriverCommandsInterface
 from cloudshell.layer_one.core.layer_one_driver_exception import LayerOneDriverException
-from cloudshell.layer_one.core.response.resource_info.entities.attributes import StringAttribute
-from cloudshell.layer_one.core.response.response_info import ResourceDescriptionResponseInfo, GetStateIdResponseInfo
-
+from cloudshell.layer_one.core.response.response_info import ResourceDescriptionResponseInfo, GetStateIdResponseInfo, \
+    AttributeValueResponseInfo
 from simpler_networks.helpers.autoload_helper import AutoloadHelper
 from simpler_networks.snmp.snmp_handler_factory import SnmpHandlerFactory
 
@@ -231,8 +230,6 @@ class DriverCommands(DriverCommandsInterface):
         """
         # snmp_handler = self._snmp_handler_factory.snmp_handler()
 
-        from test_data.cards import CARDS
-        from test_data.ports import PORTS
         connection_table = self.connection_table
         port_table = self.port_table
         # port_table = PORTS
@@ -299,7 +296,7 @@ class DriverCommands(DriverCommandsInterface):
         if cur_status == port_status and timeout():
             raise Exception(self.__class__.__name__,
                             'Status of port {0} was not switched from {1} during {2} sec'.format(port, cur_status,
-                                                                                        self.PORT_STATUS_TIMEOUT))
+                                                                                                 self.PORT_STATUS_TIMEOUT))
         else:
             self._logger.debug('Port status switched {0}, {1}'.format(port, cur_status))
 
@@ -352,10 +349,10 @@ class DriverCommands(DriverCommandsInterface):
         """
         serial_number = 'Serial Number'
         if len(cs_address.split('/')) == 1 and attribute_name == serial_number:
-            return StringAttribute(serial_number, self.chassis_sn or StringAttribute.DEFAULT_VALUE)
+            return AttributeValueResponseInfo(self.chassis_sn)
         else:
             raise Exception(self.__class__.__name__,
-                            'Attribute {0} for {1} not available'.format(attribute_name, cs_address))
+                            'Attribute {0} for {1} is not available'.format(attribute_name, cs_address))
 
     def set_attribute_value(self, cs_address, attribute_name, attribute_value):
         """
